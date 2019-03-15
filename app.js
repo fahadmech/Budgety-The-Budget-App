@@ -7,6 +7,19 @@ var budgetController = (function() {
     this.id = id;
     this.description = description;
     this.value = value;
+    this.percentage = -1;
+  };
+
+  Expense.prototype.calcPercentage = function(totalIncome) {
+    if (totalIncome > 0) {
+      this.percentage = Math.round((this.value / totalIncome) * 100);
+    } else {
+      this.percentage = -1;
+    }
+  };
+
+  Expense.prototype.getPercentage = function() {
+    return this.percentage;
   };
 
   var Income = function(id, description, value) {
@@ -101,6 +114,22 @@ var budgetController = (function() {
       }
     },
 
+    // public function to calculate the percentages
+    calculatePercentages: function() {
+      //calculate percentage of each expense value in the array exp
+      data.allItems.exp.forEach(function(cur) {
+        cur.calcPercentage(data.totals.inc);
+      });
+    },
+
+    // public function to get the percentages
+    getPercentages: function() {
+      var allPerc = data.allItems.exp.map(function(cur) {
+        return cur.getPercentage();
+      });
+      return allPerc;
+    },
+
     // public function to get the budget
     getBudget: function() {
       return {
@@ -131,7 +160,8 @@ var UIController = (function() {
     incomeLabel: ".budget__income--value",
     expensesLabel: ".budget__expenses--value",
     percentageLabel: ".budget__expenses--percentage",
-    container: ".container"
+    container: ".container",
+    expensesPercLabel: ".item__percentage"
   };
 
   //creating & returning function to get the inputs
@@ -190,6 +220,46 @@ var UIController = (function() {
       fieldsArr[0].focus();
     },
 
+    // public function to display percentages
+    displayPercentages: function(percentages) {
+      var fields = document.querySelectorAll(DOMStrings.expensesPercLabel);
+
+      //creating our own for each method for the nodelists
+      var nodelistForEach = function(list, callback) {
+        for (var i = 0; i < list.length; i++) {
+          callback(list[i], i);
+        }
+      };
+
+      //calling our nodelist function
+      nodelistForEach(fields, function(current, index) {
+        if (percentages[index] > 0) {
+          current.textContent = percentages[index] + "%";
+        } else {
+          current.textContent = "---";
+        }
+      });
+    },
+
+    //function to format number
+    formatNumber: function(num, type) {
+      var numSplit;
+      num = Math.abs(num);
+      num = num.toFixed(2);
+
+      numSplit = num.split(".");
+
+      int = numSplit[0];
+      if (int.length > 3) {
+        int =
+          int.substr(0, int.length - 3) + "," + int.substr(int.length - 3, 3);
+      }
+
+      dec = numSplit[1];
+
+      return (type === "exp" ? "-" : "+") + " " + int + dec;
+    },
+
     //returning DOM slection strings for access
     getDOMStrings: function() {
       return DOMStrings;
@@ -245,6 +315,18 @@ var controller = (function(budgetCtrl, UICtrl) {
     UICtrl.displayBudget(budget);
   };
 
+  //creating function to update the percentages
+  var updatePercentages = function() {
+    // 1. calculate the percentages
+    budgetCtrl.calculatePercentages();
+
+    // 2. read percentages from budget controller
+    var percentages = budgetCtrl.getPercentages();
+
+    // 3. update the UI with new percentages
+    UICtrl.displayPercentages(percentages);
+  };
+
   //creating function to add item
   var ctrlAddItem = function() {
     var input, newItem;
@@ -260,6 +342,8 @@ var controller = (function(budgetCtrl, UICtrl) {
       UICtrl.clearField();
       // 5. calculate and update budget by calling udateBuget function
       updateBudget();
+      //6. calcualte and update percentages calling update percentage function
+      updatePercentages();
     }
   };
 
@@ -275,14 +359,17 @@ var controller = (function(budgetCtrl, UICtrl) {
       type = splitId[0];
       ID = parseInt(splitId[1]);
 
-      // delete the item from the data structure
+      // 1. delete the item from the data structure
       budgetCtrl.deleteItem(type, ID);
 
-      // delete the item from the ui
+      // 2. delete the item from the ui
       UICtrl.deleteListItem(itemId);
 
-      // update and show new budget
+      // 3. update and show new budget
       updateBudget();
+
+      //4. calcualte and update percentages calling update percentage function
+      updatePercentages();
     }
   };
 

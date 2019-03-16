@@ -1,6 +1,6 @@
 // creating modules
 
-// BUDGET CONTROLLER
+// ========================================BUDGET CONTROLLER=======================================
 // function constructor for income and expenditure
 var budgetController = (function() {
   var Expense = function(id, description, value) {
@@ -146,7 +146,7 @@ var budgetController = (function() {
   };
 })();
 
-// UI CONTROLLER
+// ===============================UI CONTROLLER==============================================
 var UIController = (function() {
   // separating the DOM string slection  from the code
   var DOMStrings = {
@@ -161,7 +161,8 @@ var UIController = (function() {
     expensesLabel: ".budget__expenses--value",
     percentageLabel: ".budget__expenses--percentage",
     container: ".container",
-    expensesPercLabel: ".item__percentage"
+    expensesPercLabel: ".item__percentage",
+    dateLabel: ".budget__title--month"
   };
 
   //function to format number
@@ -180,6 +181,13 @@ var UIController = (function() {
     dec = numSplit[1];
 
     return (type === "exp" ? "-" : "+") + " " + int + "." + dec;
+  };
+
+  //creating our own for each method for the nodelists
+  var nodelistForEach = function(list, callback) {
+    for (var i = 0; i < list.length; i++) {
+      callback(list[i], i);
+    }
   };
 
   //creating & returning function to get the inputs
@@ -242,13 +250,6 @@ var UIController = (function() {
     displayPercentages: function(percentages) {
       var fields = document.querySelectorAll(DOMStrings.expensesPercLabel);
 
-      //creating our own for each method for the nodelists
-      var nodelistForEach = function(list, callback) {
-        for (var i = 0; i < list.length; i++) {
-          callback(list[i], i);
-        }
-      };
-
       //calling our nodelist function
       nodelistForEach(fields, function(current, index) {
         if (percentages[index] > 0) {
@@ -286,11 +287,52 @@ var UIController = (function() {
       } else {
         document.querySelector(DOMStrings.percentageLabel).textContent = "---";
       }
+    },
+
+    //public function to display dates
+    displayDate: function() {
+      var now, year, month, months;
+      now = new Date();
+      year = now.getFullYear();
+      month = now.getMonth();
+      months = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ];
+      document.querySelector(DOMStrings.dateLabel).textContent =
+        months[month] + " " + year;
+    },
+
+    //public funcion for changing colors for inc and exp
+    changedType: function() {
+      var fields = document.querySelectorAll(
+        DOMStrings.inputType +
+          "," +
+          DOMStrings.inputDescription +
+          "," +
+          DOMStrings.inputValue
+      );
+
+      nodelistForEach(fields, function(cur) {
+        cur.classList.toggle("red-focus");
+      });
+
+      document.querySelector(DOMStrings.inputBtn).classList.toggle("red");
     }
   };
 })();
 
-// GLOBAL APP CONTROLLER
+// =======================GLOBAL APP CONTROLLER=====================================================
 var controller = (function(budgetCtrl, UICtrl) {
   //creating function to setup event listeners
   var setupEventListeners = function() {
@@ -309,6 +351,11 @@ var controller = (function(budgetCtrl, UICtrl) {
     document
       .querySelector(DOM.container)
       .addEventListener("click", ctrlDeleteItem);
+
+    //chane color for inc and exp
+    document
+      .querySelector(DOM.inputType)
+      .addEventListener("change", UICtrl.changedType);
   };
 
   //creating function to update the budget
@@ -385,6 +432,7 @@ var controller = (function(budgetCtrl, UICtrl) {
   return {
     inIt: function() {
       console.log("APP HAS STARTED");
+      UICtrl.displayDate();
       UICtrl.displayBudget({
         budget: 0,
         totalInc: 0,
